@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const audioPlayerContainer = document.getElementById('audioPlayerContainer');
     const audioPlayer = document.getElementById('audioPlayer');
     const downloadMp3Button = document.getElementById('downloadMp3Button');
+    const clearTextButton = document.getElementById('clearTextButton');
 
     // --- PDF Extraction Logic (from previous answer, slightly modified for clarity) ---
     extractPdfButton.addEventListener('click', function() {
@@ -111,4 +112,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // --- Download MP3 button (already handled by setting href/download attribute) ---
+    clearTextButton.addEventListener('click', function() {
+        textArea.value = ""; // Clear the text area
+        audioPlayer.src = ""; // Stop any playing audio
+    });
 });
