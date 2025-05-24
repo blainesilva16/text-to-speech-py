@@ -109,3 +109,15 @@ button:hover { background-color: #0056b3; }
     align-items:center;
     /* display: none; Initially hidden  */
 }
+
+@media (max-width:900px) {
+    .divider {
+        display:flex;
+        flex-direction:column;
+        gap:30px;
+        align-items: center;
+    }
+    .input-container {
+        width: 570px;
+    }
+}
