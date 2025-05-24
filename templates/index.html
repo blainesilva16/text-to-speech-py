@@ -4,143 +4,65 @@
     <meta charset="UTF-8">
     <title>Text to Speech Converter | Listen to your texts</title>
     {{ bootstrap.load_css() }}
-    <link rel="stylesheet" href="static/style.css"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Host+Grotesk:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
 </head>
 <body>
+    <div style="position:fixed;z-index: 20; top:25px; left:25px;">
+        <a href="{{ url_for('home') }}" id="logo" style="text-decoration:none; color:white;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="currentColor" class="bi bi-arrow-left-circle" viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8m15 0A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-4.5-.5a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5z"/>
+            </svg>
+        </a>
+    </div>
     <div id="main" class="d-flex flex-wrap justify-content-center align-items-center">
-        <h1 id="h1">Text to Speech Converter 🔊</h1>
-        <div class="input-container shadow">
-            <textarea id="textArea" placeholder="Enter text here..."></textarea>
-            <div class="select-box">
-                <label for="languageSelect">Select Language:</label>
-                <select id="languageSelect">
-                  <option value="en">English</option>
-                  <option value="es">Spanish</option>
-                  <option value="fr">French</option>
-                  <option value="de">German</option>
-                  <option value="pt">Portuguese</option>
-                </select>
+        <h1 id="h1">Text to Speech Converter</h1>
+        <div class="divider">
+            <div class="input-container shadow">
+                <div class="textarea-container">
+                    <textarea id="textArea" placeholder="Enter text here or extract from PDF..."></textarea>
+                    <button id="extractPdfButton">Extract text from PDF</button>
+                </div>
             </div>
-            <div style="display:flex;justify-content:space-between">
-                <button id="convertButton"><b>Convert to Speech</b></button>
-                <button id="extractPdfButton"><b>Extract text from PDF</b></button>
+            <div class="input-container shadow">
+                <div class="options-container">
+                    <div class="select-box">
+                        <h6><label for="languageSelect">Select Language:</label></h6>
+                        <select id="languageSelect">
+                            <option value="en">English</option>
+                            <option value="es">Spanish</option>
+                            <option value="fr">French</option>
+                            <option value="de">German</option>
+                            <option value="pt">Portuguese</option>
+                        </select>
+                    </div>  
+                    <div class="select-box">
+                        <h6><label for="voiceSelect">Select Voice:</label></h6>
+                        <select id="voiceSelect">
+                            <option value="default">Default</option>
+                            <option value="x">Voice 1</option>
+                            <option value="y">Voice 2</option>
+                        </select>
+                    </div>  
+                    <div style="width:100%">
+                        <button style="width:inherit" id="convertButton">Convert to Speech</button>
+                    </div>                
+                    <hr style="width:100%;border-top: 2px solid white;height: 1vh;margin:0">
+                    <div class="audio-player" id="audioPlayerContainer" style="flex-wrap: wrap;">          
+                        <audio id="audioPlayer" controls></audio>                     
+                    </div>
+                    <div style="width:100%;display: flex;justify-content: space-between;">
+                        <button id="clearTextButton">Clear Text</button>
+                        <button id="downloadMp3Button">Download MP3</button>
+                    </div>  
+                </div>                
             </div>
-
         </div>
-        <p style="color:white;justify-self:center;margin:0">Design by: @Shahzaib</p>
-        <div class="audio-player" id="audioPlayerContainer" style="flex-wrap: wrap;">
-            <p style="margin:0;color:white">Done 🎊</p>
-            <audio id="audioPlayer" controls></audio>
-            <button id="downloadMp3Button">Download MP3</button>
-        </div>
-
     </div>
     <input type="file" id="pdfFileInput" accept=".pdf" style="display: none;">
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const extractPdfButton = document.getElementById('extractPdfButton');
-            const pdfFileInput = document.getElementById('pdfFileInput');
-            const textArea = document.getElementById('textArea');
-            const convertButton = document.getElementById('convertButton');
-            const languageSelect = document.getElementById('languageSelect');
-            const audioPlayerContainer = document.getElementById('audioPlayerContainer');
-            const audioPlayer = document.getElementById('audioPlayer');
-            const downloadMp3Button = document.getElementById('downloadMp3Button');
-
-            // --- PDF Extraction Logic (from previous answer, slightly modified for clarity) ---
-            extractPdfButton.addEventListener('click', function() {
-                pdfFileInput.click();
-            });
-
-            pdfFileInput.addEventListener('change', function() {
-                const file = this.files[0];
-                if (file) {
-                    if (file.type !== 'application/pdf') {
-                        alert('Please select a PDF file.');
-                        return;
-                    }
-
-                    const formData = new FormData();
-                    formData.append('pdf_file', file);
-
-                    textArea.value = "Extracting text... please wait."; // User feedback
-                    audioPlayerContainer.style.display = 'none'; // Hide audio player while extracting
-
-                    fetch('/extract_pdf', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.text) {
-                            textArea.value = data.text;
-                        } else if (data.error) {
-                            textArea.value = ""; // Clear text area on error
-                            alert('Error extracting text: ' + data.error);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        textArea.value = ""; // Clear text area on error
-                        alert('An error occurred during PDF extraction.');
-                    });
-                }
-                this.value = ''; // Clear file input so same file can be selected again
-            });
-
-            // --- Text to Speech Conversion Logic ---
-            convertButton.addEventListener('click', function() {
-                const textToConvert = textArea.value.trim();
-                const selectedLanguage = languageSelect.value;
-
-                if (textToConvert === "") {
-                    alert("Please enter some text to convert.");
-                    return;
-                }
-
-                // Show loading/processing feedback if desired
-                convertButton.textContent = "Converting...";
-                convertButton.disabled = true;
-                audioPlayerContainer.style.display = 'none'; // Hide player during conversion
-
-                fetch('/convert_to_speech', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ text: textToConvert, lang: selectedLanguage })
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        return response.json().then(errorData => { throw new Error(errorData.error || 'Server error'); });
-                    }
-                    return response.blob(); // Get the response as a Blob (binary data)
-                })
-                .then(blob => {
-                    const audioUrl = URL.createObjectURL(blob); // Create a URL for the Blob
-                    audioPlayer.src = audioUrl; // Set the audio player's source
-                    audioPlayerContainer.style.display = 'flex'; // Make the audio player visible
-                    audioPlayer.load(); // Load the new audio
-                    audioPlayer.play(); // Auto-play the audio
-
-                    // Set download button for the created URL
-                    downloadMp3Button.href = audioUrl;
-                    downloadMp3Button.download = 'speech.mp3';
-                    downloadMp3Button.style.display = 'inline-block'; // Show download button
-                })
-                .catch(error => {
-                    console.error('Error during text to speech conversion:', error);
-                    alert('Failed to convert text to speech: ' + error.message);
-                    audioPlayerContainer.style.display = 'none'; // Hide player on error
-                })
-                .finally(() => {
-                    convertButton.textContent = "Convert to Speech";
-                    convertButton.disabled = false;
-                });
-            });
-
-            // --- Download MP3 button (already handled by setting href/download attribute) ---
-        });
+    <script src="static/index.js" type="text/javascript">      
     </script>
 </body>
 </html>
