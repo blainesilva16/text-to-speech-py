@@ -17,21 +17,64 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True) # Create the folder if i
 app.config['AUDIO_FOLDER'] = 'static/audio'
 os.makedirs(app.config['AUDIO_FOLDER'], exist_ok=True)
 
+accents = {
+    'en':[{'value':'com.au',
+           'lang':'English (Australia)'},
+          {'value':'co.uk',
+           'lang':'English (United Kingdom)'},
+          {'value':'us',
+           'lang':'English (United States)'},
+          {'value':'ca',
+           'lang':'English (Canada)'},
+          {'value':'co.in',
+           'lang':'Engilsh (India)'},
+          {'value':'ie',
+           'lang':'English (Ireland)'},
+          {'value':'co.za',
+           'lang':'English (South Africa)'},
+          {'value':'com.ng',
+           'lang':'English (Nigeria)'}],
+    'fr':[{'value':'ca',
+           'lang':'French (Canada)'},
+          {'value':'fr',
+           'lang':'French (France)'}],
+    'pt':[{'value':'com.br',
+           'lang':'Portuguese (Brazil)'},
+          {'value':'pt',
+           'lang':'Portuguese (Portugal)'}],
+    'es':[{'value':'com.mx',
+           'lang':'Spanish (Mexico)'},
+          {'value':'es',
+           'lang':'Spanish (Spain)'},
+          {'value':'us',
+           'lang':'Spanish (United States)'}]
+}
+
 @app.route("/", methods=["GET","POST"])
 def home():
     return render_template('index.html')
+
+@app.route('/change_accent',methods=['POST'])
+def change_accent():
+    data = request.get_json()
+    lang = data.get('lang')
+    if accents[lang]:
+        return jsonify({'success':True,'accents':accents[lang]})
+    else:
+        return jsonify({'success':False,'error':'No accents available for this language'}),400
 
 @app.route('/convert_to_speech', methods=['POST'])
 def convert_to_speech():
     data = request.get_json()
     text = data.get('text')
     lang = data.get('lang', 'en') # Default to English if not provided
+    accent = data.get('accent', 'us')
 
     if not text:
         return jsonify({'error': 'No text provided'}), 400
 
     try:
-        tts = gTTS(text=text, lang=lang, slow=False)
+        tts = gTTS(text=text, lang=lang, slow=False, tld=accent)
         # We'll use an in-memory byte stream instead of saving to a file
         audio_stream = io.BytesIO()
         tts.write_to_fp(audio_stream)
@@ -83,4 +126,4 @@ def extract_pdf():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5001)

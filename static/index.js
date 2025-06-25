@@ -8,6 +8,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const audioPlayer = document.getElementById('audioPlayer');
     const downloadMp3Button = document.getElementById('downloadMp3Button');
     const clearTextButton = document.getElementById('clearTextButton');
+    const selectAccents = document.getElementById('selectAccents');
+    let currentAudioUrl = null;
 
     // --- PDF Extraction Logic (from previous answer, slightly modified for clarity) ---
     extractPdfButton.addEventListener('click', function() {
@@ -50,10 +52,58 @@ document.addEventListener('DOMContentLoaded', function() {
         this.value = ''; // Clear file input so same file can be selected again
     });
 
+    languageSelect.addEventListener('change', function() {
+        const selectedLanguage = this.value;
+        if (selectedLanguage.value == "0") {
+            return
+        }      
+        let nodesSelectAccents = selectAccents.childNodes;
+        [...nodesSelectAccents].map(node => node.remove());
+        let lang = languageSelect.options[languageSelect.selectedIndex].value;
+        fetch('/change_accent',{
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ lang: lang })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                data["accents"].map(lang => {
+                const option = document.createElement('option');
+                option.setAttribute('value',lang.value)
+                option.textContent = lang.lang
+                selectAccents.appendChild(option)
+            })
+            } else if (data.error) {
+                alert('Error fetching accents: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            textArea.value = ""; // Clear text area on error
+            alert('An error occurred during PDF extraction.');
+        });
+    })
+
+    downloadMp3Button.addEventListener('click', function() {
+        if (currentAudioUrl) {
+            // Create a temporary link and trigger download
+            const a = document.createElement("a");
+            a.href = currentAudioUrl;
+            a.download = 'speech.mp3';
+            document.body.appendChild(a);
+            a.click(); // Trigger download
+            document.body.removeChild(a);
+        }
+    });
+
     // --- Text to Speech Conversion Logic ---
     convertButton.addEventListener('click', function() {
         const textToConvert = textArea.value.trim();
         const selectedLanguage = languageSelect.value;
+        const selectedAccent = selectAccents.value;
 
         if (textToConvert === "") {
             alert("Please enter some text to convert.");
@@ -70,7 +120,7 @@ document.addEventListener('DOMContentLoaded', function() {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ text: textToConvert, lang: selectedLanguage })
+            body: JSON.stringify({ text: textToConvert, lang: selectedLanguage, accent: selectedAccent })
         })
         .then(response => {
             if (!response.ok) {
@@ -79,26 +129,15 @@ document.addEventListener('DOMContentLoaded', function() {
             return response.blob(); // Get the response as a Blob (binary data)
         })
         .then(blob => {
-            const audioUrl = URL.createObjectURL(blob); // Create a URL for the Blob
-            audioPlayer.src = audioUrl; // Set the audio player's source
-            // audioPlayerContainer.style.display = 'flex'; // Make the audio player visible
+            // Revoke previous blob URL if needed
+            if (currentAudioUrl) {
+                URL.revokeObjectURL(currentAudioUrl);
+            }
+            currentAudioUrl = URL.createObjectURL(blob); // Create a URL for the Blob
+            audioPlayer.src = currentAudioUrl; // Set the audio player's source
             audioPlayer.load(); // Load the new audio
             audioPlayer.play(); // Auto-play the audio
-
-
-            // Create a temporary link and trigger download
-            const a = document.createElement("a");
-            a.href = audioUrl;
-            a.download = 'speech.mp3'; // Default filename
-            document.body.appendChild(a);
-            downloadMp3Button.addEventListener('click', function() {
-                a.click(); // Trigger download
-            });
-            document.body.removeChild(a);
-            // // Set download button for the created URL
-            // downloadMp3Button.href = audioUrl;
-            // downloadMp3Button.download = 'speech.mp3';
-            // downloadMp3Button.style.display = 'inline-block'; // Show download button
+            
         })
         .catch(error => {
             console.error('Error during text to speech conversion:', error);
