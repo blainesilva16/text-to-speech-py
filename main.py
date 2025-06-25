@@ -1,6 +1,6 @@
 from flask import Flask, render_template, jsonify, request,send_file
 from flask_bootstrap import Bootstrap5
-import os,PyPDF2,io,dotenv
+import os,io,pypdf,dotenv
 from gtts import gTTS
 
 dotenv.load_dotenv()
@@ -108,7 +108,7 @@ def extract_pdf():
 
             text = ""
             with open(filepath, 'rb') as file:
-                reader = PyPDF2.PdfReader(file)
+                reader = pypdf.PdfReader(file)
                 for page_num in range(len(reader.pages)):
                     page = reader.pages[page_num]
                     text += page.extract_text() + "\n" # Add a newline between pages
@@ -117,7 +117,7 @@ def extract_pdf():
 
             return jsonify({'text': text})
 
-        except PyPDF2.utils.PdfReadError:
+        except pypdf.utils.PdfReadError:
             return jsonify({'error': 'Could not read PDF file. It might be encrypted or corrupted.'}), 400
         except Exception as e:
             return jsonify({'error': f'An unexpected error occurred: {str(e)}'}), 500
